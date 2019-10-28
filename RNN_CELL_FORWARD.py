@@ -26,7 +26,7 @@ def rnn_cell_forward(xt, a_prev, parameters):
     ba = parameters["ba"]
     by = parameters["by"]
     a_next = np.tanh(np.dot(Wax, xt) + np.dot(Waa, a_prev) + ba)
-    yt_pred = softmax(np.dot(Wya, a_next) + by)
+    yt_pred = softmax(np.dot(Wya, a_next) + by, axis=0)
     # cache is the storage for backward propagation
     cache = (a_next, a_prev, xt, parameters)
     return a_next, yt_pred, cache
