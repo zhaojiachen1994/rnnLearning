@@ -175,7 +175,7 @@ def main2(config):
     lstm = model.lstmcell1
     for name, param in lstm.named_parameters():
         if param.requires_grad:
-            print(name, '\t', param.size())
+            print(name, '\t', param.size()) #在torch.nn.lstmcell中weight_ih包括了4个门的权重
 
 
     #### STEP4, SEE THE PREDICTED RESULTS
