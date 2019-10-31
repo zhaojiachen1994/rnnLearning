@@ -1,6 +1,10 @@
 # Reimplement of the sequence model in deeplearning.ai
+该仓库包括两个部分，第一部分复现了Deep-Learning-Coursera课程中序列模型的第一周的作业内容，利用numpy实现了rnn和lstm的前向传播和后向传播；
+第二部分实现了利用lstm和lstmcell对minst数据集的识别分类任务。
 
-Ref: https://github.com/enggen/Deep-Learning-Coursera
+Reference of part 1: https://github.com/enggen/Deep-Learning-Coursera
+Reference of part 2: https://github.com/yunjey/pytorch-tutorial/blob/master/tutorials/02-intermediate/recurrent_neural_network/main.py
+
 
 ## RNN cell structure:
 ![image](https://github.com/zhaojiachen1994/rnnLearning/blob/master/figure/rnn_step_forward.png)
