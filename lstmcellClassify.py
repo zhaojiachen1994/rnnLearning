@@ -1,18 +1,22 @@
 # -*- coding: utf-8 -*-
 """
-File: s1_lstmclassification.py
-Project: lstmsegv1
+File: lstmcellClassify.py
+Project: rnnLearning
 Author: Jiachen Zhao
 Date: 10/29/19
-Description: perform classification task for MNIST data set using a two-layer lstm
-Reference: https://github.com/yunjey/pytorch-tutorial/blob/master/tutorials/02-intermediate/recurrent_neural_network/main.py
+Description: Achieve the same function with lstmClassi but with lstmcell
+https://github.com/yunjey/pytorch-tutorial/blob/master/tutorials/02-intermediate/recurrent_neural_network/main.py
 """
 
+import numpy as np
+import random
 import torch
 import torch.nn as nn
 import torchvision
 import torchvision.transforms as transforms
+from torch.autograd import Variable
 import argparse #Parser for command-line options, argyments and sub-commands
+
 
 def mnistdataloader():
     # MNIST dataset
@@ -35,66 +39,62 @@ def mnistdataloader():
                                               shuffle=False)
     return train_loader, test_loader
 
-class RNN(nn.Module):
+class RNNCELL(nn.Module):
     def __init__(self, config):
-        super(RNN, self).__init__()
+        super(RNNCELL, self).__init__()
+        self.input_size = config.input_size
         self.hidden_size = config.hidden_size
-        self.num_layers = config.num_layers
-        self.lstm = nn.LSTM(input_size=config.input_size,
-                            hidden_size=config.hidden_size,
-                            num_layers=config.num_layers, batch_first=True)
-        self.fc = nn.Linear(config.hidden_size, config.num_classes)
+        self.lstmcell1 = nn.LSTMCell(input_size=self.input_size, hidden_size=self.hidden_size, bias=True)
+        self.lstmcell2 = nn.LSTMCell(input_size=self.hidden_size, hidden_size=self.hidden_size, bias=True)
+        self.linear = nn.Linear(self.hidden_size, config.num_classes)
+
+        # self.register_buffer('h_t', torch.zeros(config.batch_size, self.hidden_size))
+        # self.register_buffer('c_t', torch.zeros(config.batch_size, self.hidden_size))
+        # self.register_buffer('h_t2', torch.zeros(config.batch_size, self.hidden_size))
+        # self.register_buffer('c_t2', torch.zeros(config.batch_size, self.hidden_size))
 
         self.criterion = nn.CrossEntropyLoss()
         self.optimizer = torch.optim.Adam(self.parameters(), lr=config.learning_rate)
 
-    def forward(self, x):
-        # Set initial hidden and cell states
-        h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(device)
-        c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(device)
+    def forward(self, input):   # input size [batch_size, 28, 28]
 
-        # Forward propagate LSTM
-        out, _ = self.lstm(x, (h0, c0))  # out: tensor of shape (batch_size, seq_length, hidden_size)
+        h_t = torch.zeros(input.size(0), self.hidden_size)
+        c_t = torch.zeros(input.size(0), self.hidden_size)
+        h_t2 = torch.zeros(input.size(0), self.hidden_size)
+        c_t2 = torch.zeros(input.size(0), self.hidden_size)
 
-        # Decode the hidden state of the last time step
-        out = self.fc(out[:, -1, :])
-        return out
+        for step, input_t in enumerate(input.chunk(input.size(1), dim=1)):
+            h_t, c_t = self.lstmcell1(input_t.squeeze(dim=1), (h_t, c_t))
+            # print('t_step:', step, 'input_t size:', input_t.squeeze(dim=1).size())
+            # print('h_t shape:', h_t.size())
+            h_t2, c_t2 = self.lstmcell2(h_t, (h_t2, c_t2))
+        output = self.linear(h_t2)  # shape with [batch_size, num_classes]
+        return output
 
     def predict(self, image, label_true):
         self.eval()
-        image = image.reshape(-1, config.sequence_length, config.input_size).to(device)
+        # print(image.size())
+        # image = image.reshape(config.sequence_length, config.input_size).to(device)
+        # print('image size', image.size())
         label_true = label_true.to(device)
-        # Set initial hidden and cell states
-        h0 = torch.zeros(self.num_layers, image.size(0), self.hidden_size).to(device)
-        c0 = torch.zeros(self.num_layers, image.size(0), self.hidden_size).to(device)
-        # Forward propagate LSTM
-        out, _ = self.lstm(image, (h0, c0))  # out: tensor of shape (batch_size, seq_length, hidden_size)
-
-        # Decode the hidden state of the last time step
-        out = self.fc(out[:, -1, :])
+        out = self.forward(image)
         _, label_pred = torch.max(out.data, 1, keepdim=False)
-        result = (label_pred==label_true).item()
+        result = (label_pred == label_true).item()
         label_pred = label_pred.item()
         return label_pred, result
 
-
-
-def trainRNN(model, train_loader, config):
-    # Loss and optimizer
-    # criterion = nn.CrossEntropyLoss()
-    # optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate)
-
-    # Train the model
+def trainRNNCELL(model, train_loader, config):
     model.train()
     total_step = len(train_loader)
     for epoch in range(config.num_epochs):
         for i, (images, labels) in enumerate(train_loader):
             images = images.reshape(-1, config.sequence_length, config.input_size).to(device)
             labels = labels.to(device)
+
             # Forward pass
-            # print(images.size())
-            outputs = model(images) # images shape is [100, 28, 28], corresponding to [batch_size, sequence_length, input_size]
+            outputs = model(images)
             loss = model.criterion(outputs, labels)
+
             # BACKWARD AND OPTIMIZE
             model.optimizer.zero_grad()
             loss.backward()
@@ -104,12 +104,12 @@ def trainRNN(model, train_loader, config):
                 print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'
                       .format(epoch + 1, config.num_epochs, i + 1, total_step, loss.item()))
 
-def testRNN(model, test_loader, config):
+def testRNNCELL(model, test_loader, config):
     model.eval()
     with torch.no_grad():
         correct = 0
         total = 0
-        for images, labels in test_loader:
+        for i, (images, labels) in enumerate(test_loader):
             images = images.reshape(-1, config.sequence_length, config.input_size).to(device)
             labels = labels.to(device)
             outputs = model(images)
@@ -130,10 +130,17 @@ def saveRNN(model, config):
         'optimizer_state_dict': model.optimizer.state_dict()}
     torch.save(checkpoint, config.pathCheckpoint)
 
+def setup_seed(seed):
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+    torch.backends.cudnn.deterministic = True
+
 def loadRNN(config, mode='eval'):
 
     # First initialize the model and optimizer (here, the optimizer is contained in the model)
-    model = RNN(config)
+    model = RNNCELL(config)
     # Then load the model
     checkpoint = torch.load(config.pathCheckpoint)
     model.load_state_dict(checkpoint['model_state_dict'])
@@ -147,43 +154,42 @@ def loadRNN(config, mode='eval'):
 
 def main1(config):
     '''
-    Directly train and test the model
-    '''
+        Directly train and test the model
+        '''
     train_loader, test_loader = mnistdataloader()
-    model = RNN(config)
-    trainRNN(model, train_loader, config)
-    testRNN(model, test_loader, config)
+    model = RNNCELL(config)
+    trainRNNCELL(model, train_loader, config)
+    testRNNCELL(model, test_loader, config)
     saveRNN(model, config)
 
+
 def main2(config):
-    """
-    Load the model; test it; see the parameters;
-    """
     #### STEP1, LOAD THE MODEL
     train_loader, test_loader = mnistdataloader()
     model = loadRNN(config, mode='eval')
 
     #### STEP2, TEST THE MODEL
-    # testRNN(model, test_loader, config)
+    testRNNCELL(model, test_loader, config)
 
     #### STEP3, SEE THE PARAMETERS AND SHAPE
-    lstm = model.lstm
-    print(lstm.named_parameters())
+    lstm = model.lstmcell1
     for name, param in lstm.named_parameters():
         if param.requires_grad:
             print(name, '\t', param.size())
 
-    ### STEP4, SEE THE PREDICTED RESULTS.
-    # ind = 50    # ind is indexed in the first batch, so should be in [0, 99]
-    # sample = next(iter(test_loader))
-    # x = sample[0][ind]
-    # y_true = sample[1][ind]
-    # y_pred, result = model.predict(x, y_true)
-    # print('Ground-truth label:', y_true.item(), 'Predicted label:', y_pred, '\tResult:', result)
+
+    #### STEP4, SEE THE PREDICTED RESULTS
+    ind = 45 # ind is indexed in the first batch, so should be in [0, 99]
+    sample = next(iter(test_loader))
+    x = sample[0][ind]
+    y_true = sample[1][ind]
+    y_pred, result = model.predict(x, y_true)
+    print('Ground-truth label:', y_true.item(), 'Predicted label:', y_pred, '\tResult:', result)
 
 
 
 if __name__ == "__main__":
+    print('START lstmcellClassify!!!\n---------------------------\n')
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     parser = argparse.ArgumentParser(description='PyTorch lstm text')
     parser.add_argument('--sequence_length', type=int, default=28)
@@ -193,8 +199,11 @@ if __name__ == "__main__":
     parser.add_argument('--num_classes', type=int, default=10)
     parser.add_argument('--batch_size', type=int, default=100)
     parser.add_argument('--num_epochs', type=int, default=2)
-    parser.add_argument('--learning_rate', type=float, default=0.01)
-    parser.add_argument('--pathCheckpoint', type=str, default = './checkpoint/RNN.ckpt')
+    parser.add_argument('--learning_rate', type=float, default=0.001)
+    parser.add_argument('--pathCheckpoint', type=str, default = './checkpoint/lstmcellclassify.ckpt')
     config = parser.parse_args()
-
+    setup_seed(1)
     main1(config)
+    main2(config)
+
+    print('\n---------------------------\nEND lstmcellClassify!!!')
