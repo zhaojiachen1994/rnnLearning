@@ -181,18 +181,16 @@ def main2(config):
     # y_pred, result = model.predict(x, y_true)
     # print('Ground-truth label:', y_true.item(), 'Predicted label:', y_pred, '\tResult:', result)
 
-
-
 if __name__ == "__main__":
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     parser = argparse.ArgumentParser(description='PyTorch lstm text')
     parser.add_argument('--sequence_length', type=int, default=28)
     parser.add_argument('--input_size', type=int, default=28)
-    parser.add_argument('--hidden_size', type=int, default=128)
+    parser.add_argument('--hidden_size', type=int, default=28)
     parser.add_argument('--num_layers', type=int, default=2)
     parser.add_argument('--num_classes', type=int, default=10)
     parser.add_argument('--batch_size', type=int, default=100)
-    parser.add_argument('--num_epochs', type=int, default=2)
+    parser.add_argument('--num_epochs', type=int, default=3)
     parser.add_argument('--learning_rate', type=float, default=0.01)
     parser.add_argument('--pathCheckpoint', type=str, default = './checkpoint/RNN.ckpt')
     config = parser.parse_args()

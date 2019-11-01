@@ -138,7 +138,6 @@ def setup_seed(seed):
     torch.backends.cudnn.deterministic = True
 
 def loadRNN(config, mode='eval'):
-
     # First initialize the model and optimizer (here, the optimizer is contained in the model)
     model = RNNCELL(config)
     # Then load the model
@@ -186,8 +185,6 @@ def main2(config):
     y_pred, result = model.predict(x, y_true)
     print('Ground-truth label:', y_true.item(), 'Predicted label:', y_pred, '\tResult:', result)
 
-
-
 if __name__ == "__main__":
     print('START lstmcellClassify!!!\n---------------------------\n')
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -205,5 +202,4 @@ if __name__ == "__main__":
     setup_seed(1)
     main1(config)
     main2(config)
-
     print('\n---------------------------\nEND lstmcellClassify!!!')
