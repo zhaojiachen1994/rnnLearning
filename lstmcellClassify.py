@@ -44,7 +44,7 @@ class RNNCELL(nn.Module):
         super(RNNCELL, self).__init__()
         self.input_size = config.input_size
         self.hidden_size = config.hidden_size
-        self.lstmcell1 = nn.LSTMCell(input_size=self.input_size, hidden_size=self.hidden_size, bias=True)
+        self.lstmcell1 = nn.LSTMCell(input_size=self.input_siHIze, hidden_size=self.hidden_size, bias=True)
         self.lstmcell2 = nn.LSTMCell(input_size=self.hidden_size, hidden_size=self.hidden_size, bias=True)
         self.linear = nn.Linear(self.hidden_size, config.num_classes)
 
